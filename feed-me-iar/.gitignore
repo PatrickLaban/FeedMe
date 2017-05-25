@@ -1,0 +1,44 @@
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+*.xcl
+*.pbi
+*.dep
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+#*.a
+#*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+*.map
+*.sim
+
+*.dep
+*.dbgdt
+*.dni
+*.wsdt
+*.wspos
+
+# Output directories
+/Projects/MyApp/EWARM/settings
+/Projects/MyApp/EWARM/STM32F4xx-Nucleo
