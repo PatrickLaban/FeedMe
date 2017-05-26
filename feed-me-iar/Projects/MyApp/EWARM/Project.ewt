@@ -1688,6 +1688,9 @@
         </file>
       </group>
       <group>
+        <name>MoistureSensor</name>
+      </group>
+      <group>
         <name>UartAct</name>
         <group>
           <name>UartIn</name>
