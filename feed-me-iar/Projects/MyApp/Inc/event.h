@@ -100,6 +100,13 @@ enum {
     USER_BTN_UP,
     USER_BTN_DOWN,
     
+    MOISTURE_SENSOR_START_REQ,
+    MOISTURE_SENSOR_START_CFM,
+    MOISTURE_SENSOR_STOP_REQ,
+    MOISTURE_SENSOR_STOP_CFM,
+    MOISTURE_SENSOR_STATE_TIMER,
+    MOISTURE_SENSOR_WAIT_TIMER,
+    
     USER_LED_START_REQ,
     USER_LED_START_CFM,
     USER_LED_STOP_REQ,
@@ -314,6 +321,36 @@ class UserBtnStopCfm : public ErrorEvt {
 public:
     UserBtnStopCfm(uint16_t seq, Error error, Reason reason = 0) :
         ErrorEvt(USER_BTN_STOP_CFM, seq, error, reason) {}
+};
+
+class MoistureSensorStartReq : public Evt {
+public:
+    enum {
+        TIMEOUT_MS = 100
+    };
+    MoistureSensorStartReq(uint16_t seq) :
+        Evt(MOISTURE_SENSOR_START_REQ, seq) {}
+};
+
+class MoistureSensorStartCfm : public ErrorEvt {
+public:
+    MoistureSensorStartCfm(uint16_t seq, Error error, Reason reason = 0) :
+        ErrorEvt(MOISTURE_SENSOR_START_CFM, seq, error, reason) {}
+};
+
+class MoistureSensorStopReq : public Evt {
+public:
+    enum {
+        TIMEOUT_MS = 100
+    };
+    MoistureSensorStopReq(uint16_t seq) :
+        Evt(MOISTURE_SENSOR_STOP_REQ, seq) {}
+};
+
+class MoistureSensorStopCfm : public ErrorEvt {
+public:
+    MoistureSensorStopCfm(uint16_t seq, Error error, Reason reason = 0) :
+        ErrorEvt(MOISTURE_SENSOR_STOP_CFM, seq, error, reason) {}
 };
 
 class UserLedStartReq : public Evt {

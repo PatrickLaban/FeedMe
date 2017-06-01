@@ -38,6 +38,7 @@
 #include "hsm_id.h"
 #include "UartAct.h"
 #include "UserBtn.h"
+#include "MoistureSensor.h"
 
 /* USER CODE BEGIN 0 */
 

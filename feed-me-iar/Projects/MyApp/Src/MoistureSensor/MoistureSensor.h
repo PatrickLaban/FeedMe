@@ -27,8 +27,8 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  ******************************************************************************/
 
-#ifndef USER_BTN_H
-#define USER_BTN_H
+#ifndef MOISTURE_SENSOR_H
+#define MOISTURE_SENSOR_H
 
 #include "qpcpp.h"
 #include "fw_evt.h"
@@ -39,27 +39,25 @@ using namespace FW;
 
 namespace APP {
 
-class UserBtn : public QActive {
+class MoistureSensor : public QActive {
 public:
-    UserBtn();
+    MoistureSensor();
     void Start(uint8_t prio) {
         QActive::start(prio, m_evtQueueStor, ARRAY_COUNT(m_evtQueueStor), NULL, 0);
     }
-    static void GpioIntCallback(uint8_t id);
+    //static void GpioIntCallback(uint8_t id);
 
 protected:
-    static QState InitialPseudoState(UserBtn * const me, QEvt const * const e);
-    static QState Root(UserBtn * const me, QEvt const * const e);
-        static QState Stopped(UserBtn * const me, QEvt const * const e);
-        static QState Started(UserBtn * const me, QEvt const * const e);
-            static QState Up(UserBtn * const me, QEvt const * const e);
-            static QState Down(UserBtn * const me, QEvt const * const e);
-                static QState HoldWait(UserBtn * const me, QEvt const * const e);
-                static QState HoldDetected(UserBtn * const me, QEvt const * const e);                        
+    static QState InitialPseudoState(MoistureSensor * const me, QEvt const * const e);
+    static QState Root(MoistureSensor * const me, QEvt const * const e);
+        static QState Stopped(MoistureSensor * const me, QEvt const * const e);
+        static QState Started(MoistureSensor * const me, QEvt const * const e);
+               
         
-    static void ConfigGpioInt();
-    static void EnableGpioInt();
-    static void DisableGpioInt();
+    static void ConfigADC();
+    static void EnableADC();
+    static void DisableADC();
+    
     
     enum {
         EVT_QUEUE_COUNT = 16
@@ -70,10 +68,9 @@ protected:
     uint16_t m_nextSequence;    
 
     enum {
-        HOLD_TIMER_MS = 500    
+        TEST_TIMER_MS = 500    
     };
-    QTimeEvt m_stateTimer;
-    QTimeEvt m_holdTimer;
+    QTimeEvt m_waitTimer;
 };
 
 } // namespace APP

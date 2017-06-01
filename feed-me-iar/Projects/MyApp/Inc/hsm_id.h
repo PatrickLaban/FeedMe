@@ -38,6 +38,7 @@ enum {
     UART2_IN,
     UART2_OUT,
     USER_BTN,
+    MOISTURE_SENSOR,
     USER_LED,
     HSM_COUNT
 };
@@ -51,6 +52,7 @@ enum
     PRIO_SYSTEM     = 26,
     PRIO_USER_BTN   = 24,
     PRIO_USER_LED   = 22,
+    PRIO_MOISTURE_SENSOR = 25,
     PRIO_SAMPLE     = 5
 };
 

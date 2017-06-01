@@ -29,7 +29,7 @@
 
 #include "hsm_id.h"
 #include "fw_log.h"
-#include "UserBtn.h"
+#include "MoistureSensor.h"
 #include "event.h"
 #include "bsp.h"
 
@@ -37,60 +37,98 @@
 
 namespace APP {
 
-// User Btn uses PC.13 (i.e. EXTI13)
-void UserBtn::ConfigGpioInt() {
-    GPIO_InitTypeDef   GPIO_InitStructure;
-    __HAL_RCC_GPIOC_CLK_ENABLE();
-    GPIO_InitStructure.Mode = GPIO_MODE_IT_RISING_FALLING;
-    GPIO_InitStructure.Pull = GPIO_NOPULL;
-    GPIO_InitStructure.Pin = GPIO_PIN_13;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+ADC_HandleTypeDef g_AdcHandle;
 
-    NVIC_SetPriority(EXTI15_10_IRQn, EXTI15_10_PRIO);
-    NVIC_EnableIRQ(EXTI15_10_IRQn);
+
+
+void MoistureSensor::ConfigADC() {
+    GPIO_InitTypeDef GPIO_InitStructure;
+    
+    
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_ADC1_CLK_ENABLE();
+    
+    // Using analog pin 0 PA_0
+    GPIO_InitStructure.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStructure.Pull = GPIO_NOPULL;
+    GPIO_InitStructure.Pin = GPIO_PIN_1;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStructure);
+    
+    HAL_NVIC_SetPriority(ADC_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(ADC_IRQn);
+ 
+    ADC_ChannelConfTypeDef adcChannel;
+ 
+    g_AdcHandle.Instance = ADC1;
+ 
+    g_AdcHandle.Init.ClockPrescaler = ADC_CLOCKPRESCALER_PCLK_DIV2;
+    g_AdcHandle.Init.Resolution = ADC_RESOLUTION_12B;
+    g_AdcHandle.Init.ScanConvMode = DISABLE;
+    g_AdcHandle.Init.ContinuousConvMode = ENABLE;
+    g_AdcHandle.Init.DiscontinuousConvMode = DISABLE;
+    g_AdcHandle.Init.NbrOfDiscConversion = 0;
+    g_AdcHandle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+    g_AdcHandle.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_CC1;
+    g_AdcHandle.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+    g_AdcHandle.Init.NbrOfConversion = 1;
+    g_AdcHandle.Init.DMAContinuousRequests = ENABLE;
+    g_AdcHandle.Init.EOCSelection = DISABLE;
+ 
+    HAL_ADC_Init(&g_AdcHandle);
+ 
+    adcChannel.Channel = ADC_CHANNEL_11;
+    adcChannel.Rank = 1;
+    adcChannel.SamplingTime = ADC_SAMPLETIME_480CYCLES;
+    adcChannel.Offset = 0;
+    
+    if (HAL_ADC_ConfigChannel(&g_AdcHandle, &adcChannel) != HAL_OK)
+    {
+        asm("bkpt 255");
+    }
 }
 
-void UserBtn::EnableGpioInt() {
+void MoistureSensor::EnableADC() {
+    /*
     QF_CRIT_STAT_TYPE crit;
     QF_CRIT_ENTRY(crit);
     EXTI->IMR = BIT_SET(EXTI->IMR, GPIO_PIN_13, 0);
     QF_CRIT_EXIT(crit);
+    */
 }
 
-void UserBtn::DisableGpioInt() {
+void MoistureSensor::DisableADC() {
+    /*
     QF_CRIT_STAT_TYPE crit;
     QF_CRIT_ENTRY(crit);
     EXTI->IMR = BIT_CLR(EXTI->IMR, GPIO_PIN_13, 0);
     QF_CRIT_EXIT(crit);
+    */
 }
 
-void UserBtn::GpioIntCallback(uint8_t id) {
-    static uint16_t counter = 0; 
-    Evt *evt = new Evt(USER_BTN_TRIG, counter++);
-    QF::PUBLISH(evt, 0);
-    DisableGpioInt();
-}
+    
+MoistureSensor::MoistureSensor() :
+    QActive((QStateHandler)&MoistureSensor::InitialPseudoState), 
+    m_id(MOISTURE_SENSOR), m_name("MOISTURE_SENSOR"), m_nextSequence(0),
+    m_waitTimer(this, MOISTURE_SENSOR_WAIT_TIMER) {}
 
-UserBtn::UserBtn() :
-    QActive((QStateHandler)&UserBtn::InitialPseudoState), 
-    m_id(USER_BTN), m_name("USER_BTN"), m_nextSequence(0), 
-    m_stateTimer(this, USER_BTN_STATE_TIMER), m_holdTimer(this, USER_BTN_HOLD_TIMER) {}
-
-QState UserBtn::InitialPseudoState(UserBtn * const me, QEvt const * const e) {
+QState MoistureSensor::InitialPseudoState(MoistureSensor * const me, QEvt const * const e) {
     (void)e;
     
-    me->subscribe(USER_BTN_START_REQ);
-    me->subscribe(USER_BTN_STOP_REQ);
-    me->subscribe(USER_BTN_STATE_TIMER);
-    me->subscribe(USER_BTN_HOLD_TIMER);
-    me->subscribe(USER_BTN_TRIG);
-    me->subscribe(USER_BTN_UP);
-    me->subscribe(USER_BTN_DOWN);
+    me->subscribe(MOISTURE_SENSOR_START_REQ);
+    me->subscribe(MOISTURE_SENSOR_STOP_REQ);
+    me->subscribe(MOISTURE_SENSOR_STATE_TIMER);
+    /*
+    me->subscribe(MOISTURE_SENSOR_HOLD_TIMER);
     
-    return Q_TRAN(&UserBtn::Root);
+    me->subscribe(MOISTURE_SENSOR_TRIG);
+    me->subscribe(MOISTURE_SENSOR_UP);
+    me->subscribe(MOISTURE_SENSOR_DOWN);
+    */
+    
+    return Q_TRAN(&MoistureSensor::Root);
 }
 
-QState UserBtn::Root(UserBtn * const me, QEvt const * const e) {
+QState MoistureSensor::Root(MoistureSensor * const me, QEvt const * const e) {
     QState status;
     switch (e->sig) {
         case Q_ENTRY_SIG: {
@@ -104,13 +142,13 @@ QState UserBtn::Root(UserBtn * const me, QEvt const * const e) {
             break;
         }
         case Q_INIT_SIG: {
-            status = Q_TRAN(&UserBtn::Stopped);
+            status = Q_TRAN(&MoistureSensor::Stopped);
             break;
         }
-        case USER_BTN_START_REQ: {
+        case MOISTURE_SENSOR_START_REQ: {
             LOG_EVENT(e);
             Evt const &req = EVT_CAST(*e);
-            Evt *evt = new UserBtnStartCfm(req.GetSeq(), ERROR_STATE);
+            Evt *evt = new MoistureSensorStartCfm(req.GetSeq(), ERROR_STATE);
             QF::PUBLISH(evt, me);
             status = Q_HANDLED();
             break;
@@ -123,11 +161,22 @@ QState UserBtn::Root(UserBtn * const me, QEvt const * const e) {
     return status;
 }
 
-QState UserBtn::Stopped(UserBtn * const me, QEvt const * const e) {
+QState MoistureSensor::Stopped(MoistureSensor * const me, QEvt const * const e) {
     QState status;
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             LOG_EVENT(e);
+            me->m_waitTimer.armX(60000); // 60s timer
+            
+            
+             ConfigADC();   
+             uint32_t g_ADCValue;
+                HAL_ADC_Start(&g_AdcHandle);
+                if (HAL_ADC_PollForConversion(&g_AdcHandle, 1000000) == HAL_OK) {
+                    g_ADCValue = HAL_ADC_GetValue(&g_AdcHandle);
+                }
+             
+            PRINT("Value = %d\r\n", g_ADCValue);
             status = Q_HANDLED();
             break;
         }
@@ -136,229 +185,65 @@ QState UserBtn::Stopped(UserBtn * const me, QEvt const * const e) {
             status = Q_HANDLED();
             break;
         }
-        case USER_BTN_STOP_REQ: {
+        case MOISTURE_SENSOR_STOP_REQ: {
             LOG_EVENT(e);
             Evt const &req = EVT_CAST(*e);
-            Evt *evt = new UserBtnStopCfm(req.GetSeq(), ERROR_SUCCESS);
+            Evt *evt = new MoistureSensorStopCfm(req.GetSeq(), ERROR_SUCCESS);
             QF::PUBLISH(evt, me);
             status = Q_HANDLED();
             break;
         }
-        case USER_BTN_START_REQ: {
+        case MOISTURE_SENSOR_START_REQ: {
             LOG_EVENT(e);
             Evt const &req = EVT_CAST(*e);
-             Evt *evt = new UserBtnStartCfm(req.GetSeq(), ERROR_SUCCESS);
+             Evt *evt = new MoistureSensorStartCfm(req.GetSeq(), ERROR_SUCCESS);
             QF::PUBLISH(evt, me);
-            status = Q_TRAN(&UserBtn::Started);
+            status = Q_TRAN(&MoistureSensor::Started);
             break;
         }
         default: {
-            status = Q_SUPER(&UserBtn::Root);
+            status = Q_SUPER(&MoistureSensor::Root);
             break;
         }
     }
     return status;
 }
 
-QState UserBtn::Started(UserBtn * const me, QEvt const * const e) {
+QState MoistureSensor::Started(MoistureSensor * const me, QEvt const * const e) {
     QState status;
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             LOG_EVENT(e);
-            ConfigGpioInt();            
+            ConfigADC();    
+            PRINT("test");
             status = Q_HANDLED();
             break;
         }
         case Q_EXIT_SIG: {
             LOG_EVENT(e);
-            DisableGpioInt();
+            //DisableGpioInt();
             status = Q_HANDLED();
             break;
         }
         case Q_INIT_SIG: {
-            status = Q_TRAN(&UserBtn::Up);
+            status = Q_HANDLED();
             break;
         }
-        case USER_BTN_STOP_REQ: {
+        case MOISTURE_SENSOR_STOP_REQ: {
             LOG_EVENT(e);
             Evt const &req = EVT_CAST(*e);
-            Evt *evt = new UserBtnStopCfm(req.GetSeq(), ERROR_SUCCESS);
+            Evt *evt = new MoistureSensorStopCfm(req.GetSeq(), ERROR_SUCCESS);
             QF::PUBLISH(evt, me);
-            status = Q_TRAN(&UserBtn::Stopped);
+            status = Q_TRAN(&MoistureSensor::Stopped);
             break;
         }
         default: {
-            status = Q_SUPER(&UserBtn::Root);
+            status = Q_SUPER(&MoistureSensor::Root);
             break;
         }
     }
     return status;
 }
 
-QState UserBtn::Up(UserBtn * const me, QEvt const * const e) {
-    QState status;
-    switch (e->sig) {
-        case Q_ENTRY_SIG: {
-            LOG_EVENT(e);
-            Evt *evt = new Evt(USER_BTN_UP_IND, me->m_nextSequence++);
-            QF::PUBLISH(evt, me);
-            status = Q_HANDLED();
-            break;
-        }
-        case Q_EXIT_SIG: {
-            LOG_EVENT(e);
-            status = Q_HANDLED();
-            break;
-        }
-        case USER_BTN_TRIG: {
-            LOG_EVENT(e);
-            EnableGpioInt();
-            if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) == GPIO_PIN_RESET) {
-                Evt *evt = new Evt(USER_BTN_DOWN, me->m_nextSequence++);
-                me->postLIFO(evt);
-            }
-            status = Q_HANDLED();
-            break;
-        }
-        case USER_BTN_DOWN: {
-            status = Q_TRAN(&UserBtn::Down);
-            break;
-        }
-        default: {
-            status = Q_SUPER(&UserBtn::Started);
-            break;
-        }
-    }
-    return status;
-}
-
-QState UserBtn::Down(UserBtn * const me, QEvt const * const e) {
-    QState status;
-    switch (e->sig) {
-        case Q_ENTRY_SIG: {
-            LOG_EVENT(e);
-            Evt *evt = new Evt(USER_BTN_DOWN_IND, me->m_nextSequence++);
-            QF::PUBLISH(evt, me);
-            status = Q_HANDLED();
-            break;
-        }
-        case Q_EXIT_SIG: {
-            LOG_EVENT(e);
-            status = Q_HANDLED();
-            break;
-        }
-        case Q_INIT_SIG: {
-            // TODO - ASSIGNMENT 4
-            // Transit to HoldWait state.
-            status = Q_TRAN(&UserBtn::HoldWait);
-            break;
-        }
-        case USER_BTN_TRIG: {
-            LOG_EVENT(e);
-            EnableGpioInt();
-            if (HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_13) != GPIO_PIN_RESET) {
-                Evt *evt = new Evt(USER_BTN_UP, me->m_nextSequence++);
-                me->postLIFO(evt);
-            }
-            status = Q_HANDLED();
-            break;
-        }
-        case USER_BTN_UP: {
-            status = Q_TRAN(&UserBtn::Up);
-            break;
-        }
-        default: {
-            status = Q_SUPER(&UserBtn::Started);
-            break;
-        }
-    }
-    return status;
-}
-
-QState UserBtn::HoldWait(UserBtn * const me, QEvt const * const e) {
-    QState status;
-    switch (e->sig) {
-        case Q_ENTRY_SIG: {
-            LOG_EVENT(e);
-            // TODO - ASSIGNMENT 4
-            // Start m_holdTimer expiring in HOLD_TIMER_MS.
-            me->m_holdTimer.armX(HOLD_TIMER_MS); 
-            status = Q_HANDLED();
-            break;
-        }
-        case Q_EXIT_SIG: {
-            LOG_EVENT(e);
-            // TODO - ASSIGNMENT 4
-            // Stop m_holdTimer.
-            me->m_holdTimer.disarm();
-            status = Q_HANDLED();
-            break;
-        }
-        case USER_BTN_HOLD_TIMER: {
-            LOG_EVENT(e);
-            // TODO - ASSIGNMENT 4
-            // Transit to HoldDetected state.
-            status = Q_TRAN(&UserBtn::HoldDetected);
-            break;
-        }
-        default: {
-            status = Q_SUPER(&UserBtn::Down);
-            break;
-        }
-    }
-    return status;
-}
-
-QState UserBtn::HoldDetected(UserBtn * const me, QEvt const * const e) {
-    QState status;
-    switch (e->sig) {
-        case Q_ENTRY_SIG: {
-            LOG_EVENT(e);
-            // TODO - ASSIGNMENT 4
-            // Publish the USER_BTN_HOLD_IND event.
-            Evt *evt = new Evt(USER_BTN_HOLD_IND, me->m_nextSequence++);
-            QF::PUBLISH(evt, me);
-            status = Q_HANDLED();
-            break;
-        }
-        case Q_EXIT_SIG: {
-            LOG_EVENT(e);
-            status = Q_HANDLED();
-            break;
-        }
-        default: {
-            status = Q_SUPER(&UserBtn::Down);
-            break;
-        }
-    }
-    return status;
-}
-
-/*
-QState UserBtn::MyState(UserBtn * const me, QEvt const * const e) {
-    QState status;
-    switch (e->sig) {
-        case Q_ENTRY_SIG: {
-            LOG_EVENT(e);
-            status = Q_HANDLED();
-            break;
-        }
-        case Q_EXIT_SIG: {
-            LOG_EVENT(e);
-            status = Q_HANDLED();
-            break;
-        }
-        case Q_INIT_SIG: {
-            status = Q_TRAN(&UserBtn::SubState);
-            break;
-        }
-        default: {
-            status = Q_SUPER(&UserBtn::SuperState);
-            break;
-        }
-    }
-    return status;
-}
-*/
 
 } // namespace APP
