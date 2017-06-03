@@ -133,14 +133,6 @@ QState MoistureSensor::Root(MoistureSensor * const me, QEvt const * const e) {
             status = Q_TRAN(&MoistureSensor::Stopped);
             break;
         }
-        case MOISTURE_SENSOR_START_REQ: {
-            LOG_EVENT(e);
-            Evt const &req = EVT_CAST(*e);
-            Evt *evt = new MoistureSensorStartCfm(req.GetSeq(), ERROR_STATE);
-            QF::PUBLISH(evt, me);
-            status = Q_HANDLED();
-            break;
-        }
         default: {
             status = Q_SUPER(&QHsm::top);
             break;
@@ -171,9 +163,14 @@ QState MoistureSensor::Stopped(MoistureSensor * const me, QEvt const * const e) 
             status = Q_HANDLED();
             break;
         }
-        case MOISTURE_SENSOR_WAIT_TIMER:
-        case MOISTURE_SENSOR_START_REQ: {
+        case MOISTURE_SENSOR_WAIT_TIMER: {
             LOG_EVENT(e);
+            status = Q_TRAN(&MoistureSensor::Started);
+            break;
+        }
+         case MOISTURE_SENSOR_START_REQ: {
+            LOG_EVENT(e);
+            me->m_waitTimer.disarm();
             Evt const &req = EVT_CAST(*e);
             Evt *evt = new MoistureSensorStartCfm(req.GetSeq(), ERROR_SUCCESS);
             QF::PUBLISH(evt, me);

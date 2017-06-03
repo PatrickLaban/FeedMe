@@ -71,7 +71,6 @@ QState System::InitialPseudoState(System * const me, QEvt const * const e) {
     me->subscribe(USER_BTN_START_CFM);
     me->subscribe(USER_BTN_UP_IND);
     me->subscribe(USER_BTN_DOWN_IND);
-    me->subscribe(USER_BTN_HOLD_IND);
     me->subscribe(USER_LED_START_CFM);
     me->subscribe(USER_LED_ON_CFM);
     me->subscribe(USER_LED_OFF_CFM);
@@ -442,13 +441,6 @@ QState System::Started(System * const me, QEvt const * const e) {
             status = Q_HANDLED();
             break;  
         }        
-        case USER_BTN_HOLD_IND: {
-            LOG_EVENT(e);
-            Evt *evt = new UserLedOnReq(me->m_nextSequence++);
-            QF::PUBLISH(evt, me);
-            status = Q_HANDLED();
-            break;  
-        }
         case USER_LED_ON_CFM: 
         case USER_LED_OFF_CFM: {
             LOG_EVENT(e);

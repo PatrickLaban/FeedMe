@@ -112,7 +112,7 @@ int main(void)
     
     // Start active objects.
     uart2Act.Start(PRIO_UART2_ACT);
-    userBtn.Start(PRIO_USER_BTN);
+    userBtn.Start(PRIO_USER_BTN, &moistureSensor);
     userLed.Start(PRIO_USER_LED);
     moistureSensor.Start(PRIO_MOISTURE_SENSOR);
     sys.Start(PRIO_SYSTEM);

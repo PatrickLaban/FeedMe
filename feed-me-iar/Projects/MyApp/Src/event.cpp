@@ -95,7 +95,6 @@ char const * const eventName[] = {
     "USER_BTN_DOWN_IND",
     "USER_BTN_HOLD_IND",
     "USER_BTN_STATE_TIMER",
-    "USER_BTN_HOLD_TIMER",
     "USER_BTN_TRIG",
     "USER_BTN_UP",
     "USER_BTN_DOWN",

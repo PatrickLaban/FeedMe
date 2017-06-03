@@ -33,6 +33,7 @@
 #include "qpcpp.h"
 #include "fw_evt.h"
 #include "hsm_id.h"
+#include "MoistureSensor.h"
 
 using namespace QP;
 using namespace FW;
@@ -42,8 +43,9 @@ namespace APP {
 class UserBtn : public QActive {
 public:
     UserBtn();
-    void Start(uint8_t prio) {
+    void Start(uint8_t prio, MoistureSensor * qpMoistureSensor) {
         QActive::start(prio, m_evtQueueStor, ARRAY_COUNT(m_evtQueueStor), NULL, 0);
+        moistureSensor = qpMoistureSensor;
     }
     static void GpioIntCallback(uint8_t id);
 
@@ -54,8 +56,7 @@ protected:
         static QState Started(UserBtn * const me, QEvt const * const e);
             static QState Up(UserBtn * const me, QEvt const * const e);
             static QState Down(UserBtn * const me, QEvt const * const e);
-                static QState HoldWait(UserBtn * const me, QEvt const * const e);
-                static QState HoldDetected(UserBtn * const me, QEvt const * const e);                        
+                    
         
     static void ConfigGpioInt();
     static void EnableGpioInt();
@@ -69,11 +70,9 @@ protected:
     char const * m_name;
     uint16_t m_nextSequence;    
 
-    enum {
-        HOLD_TIMER_MS = 500    
-    };
     QTimeEvt m_stateTimer;
-    QTimeEvt m_holdTimer;
+    
+    MoistureSensor * moistureSensor;
 };
 
 } // namespace APP
