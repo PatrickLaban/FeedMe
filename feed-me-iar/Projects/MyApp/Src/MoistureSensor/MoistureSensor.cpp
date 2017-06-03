@@ -87,23 +87,16 @@ void MoistureSensor::ConfigADC() {
     }
 }
 
-void MoistureSensor::EnableADC() {
-    /*
-    QF_CRIT_STAT_TYPE crit;
-    QF_CRIT_ENTRY(crit);
-    EXTI->IMR = BIT_SET(EXTI->IMR, GPIO_PIN_13, 0);
-    QF_CRIT_EXIT(crit);
-    */
+void MoistureSensor::ReadADC() {
+    // Retreives the current value from the moisture sensore by reading the ADC
+    uint32_t g_ADCValue;
+    HAL_ADC_Start(&g_AdcHandle);
+    if (HAL_ADC_PollForConversion(&g_AdcHandle, 1000000) == HAL_OK) {
+        g_ADCValue = HAL_ADC_GetValue(&g_AdcHandle);
+    }
+    PRINT("Moisture Sensor Value = %d\r\n", g_ADCValue);
 }
 
-void MoistureSensor::DisableADC() {
-    /*
-    QF_CRIT_STAT_TYPE crit;
-    QF_CRIT_ENTRY(crit);
-    EXTI->IMR = BIT_CLR(EXTI->IMR, GPIO_PIN_13, 0);
-    QF_CRIT_EXIT(crit);
-    */
-}
 
     
 MoistureSensor::MoistureSensor() :
@@ -116,15 +109,9 @@ QState MoistureSensor::InitialPseudoState(MoistureSensor * const me, QEvt const 
     
     me->subscribe(MOISTURE_SENSOR_START_REQ);
     me->subscribe(MOISTURE_SENSOR_STOP_REQ);
+    me->subscribe(MOISTURE_SENSOR_WAIT_TIMER);
     me->subscribe(MOISTURE_SENSOR_STATE_TIMER);
-    /*
-    me->subscribe(MOISTURE_SENSOR_HOLD_TIMER);
-    
-    me->subscribe(MOISTURE_SENSOR_TRIG);
-    me->subscribe(MOISTURE_SENSOR_UP);
-    me->subscribe(MOISTURE_SENSOR_DOWN);
-    */
-    
+
     return Q_TRAN(&MoistureSensor::Root);
 }
 
@@ -133,6 +120,7 @@ QState MoistureSensor::Root(MoistureSensor * const me, QEvt const * const e) {
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             LOG_EVENT(e);
+            ConfigADC();
             status = Q_HANDLED();
             break;
         }
@@ -166,17 +154,9 @@ QState MoistureSensor::Stopped(MoistureSensor * const me, QEvt const * const e) 
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             LOG_EVENT(e);
-            me->m_waitTimer.armX(60000); // 60s timer
-            
-            
-             ConfigADC();   
-             uint32_t g_ADCValue;
-                HAL_ADC_Start(&g_AdcHandle);
-                if (HAL_ADC_PollForConversion(&g_AdcHandle, 1000000) == HAL_OK) {
-                    g_ADCValue = HAL_ADC_GetValue(&g_AdcHandle);
-                }
-             
-            PRINT("Value = %d\r\n", g_ADCValue);
+            me->m_waitTimer.armX(10000); // 10s timer
+            Evt *evt = new MoistureSensorStopReq(me->m_nextSequence++);
+            QF::PUBLISH(evt, me);
             status = Q_HANDLED();
             break;
         }
@@ -193,10 +173,11 @@ QState MoistureSensor::Stopped(MoistureSensor * const me, QEvt const * const e) 
             status = Q_HANDLED();
             break;
         }
+        case MOISTURE_SENSOR_WAIT_TIMER:
         case MOISTURE_SENSOR_START_REQ: {
             LOG_EVENT(e);
             Evt const &req = EVT_CAST(*e);
-             Evt *evt = new MoistureSensorStartCfm(req.GetSeq(), ERROR_SUCCESS);
+            Evt *evt = new MoistureSensorStartCfm(req.GetSeq(), ERROR_SUCCESS);
             QF::PUBLISH(evt, me);
             status = Q_TRAN(&MoistureSensor::Started);
             break;
@@ -214,14 +195,12 @@ QState MoistureSensor::Started(MoistureSensor * const me, QEvt const * const e) 
     switch (e->sig) {
         case Q_ENTRY_SIG: {
             LOG_EVENT(e);
-            ConfigADC();    
-            PRINT("test");
+            ReadADC();
             status = Q_HANDLED();
             break;
         }
         case Q_EXIT_SIG: {
             LOG_EVENT(e);
-            //DisableGpioInt();
             status = Q_HANDLED();
             break;
         }

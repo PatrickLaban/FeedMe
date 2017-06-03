@@ -11,6 +11,7 @@
     </coordinates>
     <panel_attributes>MoistureSensor::Root
 --
+entry/ configADC()
 MOISTURE_SENSOR_START_REQ/ ^MOISTURE_SENSOR_START_CFM(STATE)
 
 valign=top
@@ -27,7 +28,7 @@ valign=top
     </coordinates>
     <panel_attributes>Stopped
 --
-entry/ start waitTimer(60s)
+entry/ start waitTimer(10s)
 MOISTURE_SENSOR_STOP_REQ / ^MOISTURE_SENSOR_STOP_CFM(SUCCESS)
 
 valign=top
@@ -40,12 +41,11 @@ valign=top
       <x>90</x>
       <y>477</y>
       <w>909</w>
-      <h>342</h>
+      <h>207</h>
     </coordinates>
     <panel_attributes>Started
 --
-entry/ RunMoistureTest()
-MOISTURE_SENSOR_TEST_RESULT/ ^SEND_TEST_RESULTS_REQ, ^MOISTURE_SENSOR_STOP_REQ
+entry/ ReadADC()
 valign=top
 </panel_attributes>
     <additional_attributes/>
@@ -117,7 +117,7 @@ style=wordwrap</panel_attributes>
     </coordinates>
     <panel_attributes>MOISTURE_SENSOR_START_REQ/
      ^MOISTURE_SENSOR_START_CFM(SUCCESS)
-WAIT_TIMER
+MOISTURE_SENSOR_WAIT_TIMER
 style=wordwrap</panel_attributes>
     <additional_attributes/>
   </element>

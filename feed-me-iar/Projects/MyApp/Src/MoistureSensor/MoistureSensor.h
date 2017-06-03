@@ -55,10 +55,8 @@ protected:
                
         
     static void ConfigADC();
-    static void EnableADC();
-    static void DisableADC();
-    
-    
+    static void ReadADC();
+
     enum {
         EVT_QUEUE_COUNT = 16
     };
