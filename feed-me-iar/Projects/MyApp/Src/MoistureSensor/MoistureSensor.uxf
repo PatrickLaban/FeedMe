@@ -46,6 +46,7 @@ valign=top
     <panel_attributes>Started
 --
 entry/ ReadADC()
+ReadADC/ ^MOISTURE_SENSOR_STOP_REQ
 valign=top
 </panel_attributes>
     <additional_attributes/>

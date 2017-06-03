@@ -155,8 +155,6 @@ QState MoistureSensor::Stopped(MoistureSensor * const me, QEvt const * const e) 
         case Q_ENTRY_SIG: {
             LOG_EVENT(e);
             me->m_waitTimer.armX(10000); // 10s timer
-            Evt *evt = new MoistureSensorStopReq(me->m_nextSequence++);
-            QF::PUBLISH(evt, me);
             status = Q_HANDLED();
             break;
         }
@@ -196,6 +194,8 @@ QState MoistureSensor::Started(MoistureSensor * const me, QEvt const * const e) 
         case Q_ENTRY_SIG: {
             LOG_EVENT(e);
             ReadADC();
+            Evt *evt = new MoistureSensorStopReq(me->m_nextSequence++);
+            QF::PUBLISH(evt, me);
             status = Q_HANDLED();
             break;
         }
